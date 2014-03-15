@@ -1561,6 +1561,40 @@ static void Con_DrawInput (void)
 
 //	text[key_linepos + 1] = 0;
 
+	// make the color code visible when the cursor is inside it
+	if(!r_font_disable_freetype.integer)
+	if(text[key_linepos] != 0)
+	{
+		for(i=1; i < 5 && key_linepos - i > 0; ++i)
+			if(text[key_linepos-i] == STRING_COLOR_TAG)
+			{
+				int caret_pos, carets, ofs;
+				caret_pos = key_linepos - i;
+				if(i == 1 && text[caret_pos+1] == STRING_COLOR_TAG)
+					ofs = 1;
+				else if(i == 1 && isdigit(text[caret_pos+1]))
+					ofs = 2;
+				else if(text[caret_pos+1] == STRING_COLOR_RGB_TAG_CHAR && isxdigit(text[caret_pos+2]) && isxdigit(text[caret_pos+3]) && isxdigit(text[caret_pos+4]))
+					ofs = 5;
+				if(ofs && y + ofs + 1 < (int)sizeof(editlinecopy) - 1)
+				{
+					carets = 1;
+					while(caret_pos - carets >= 1 && text[caret_pos - carets] == STRING_COLOR_TAG)
+						++carets;
+					if(carets & 1)
+					{
+						// str^2ing (displayed as string) --> str^2^^2ing (displayed as str^2ing)
+						// str^^ing (displayed as str^ing) --> str^^^^ing (displayed as str^^ing)
+						memmove(&text[caret_pos + ofs + 1], &text[caret_pos], y - caret_pos);
+						text[caret_pos + ofs] = STRING_COLOR_TAG;
+						y += ofs + 1;
+						text[y] = 0;
+					}
+				}
+				break;
+			}
+	}
+
 	len_out = key_linepos;
 	col_out = -1;
 	xo = DrawQ_TextWidth_UntilWidth_TrackColors(text, &len_out, con_textsize.value, con_textsize.value, &col_out, false, FONT_CONSOLE, 1000000000);
