@@ -1510,7 +1510,7 @@ static void Con_DrawInput (void)
 {
 	int		y;
 	int		i;
-	char editlinecopy[MAX_INPUTLINE+1], *text;
+	char text[MAX_INPUTLINE+1];
 	float x, xo;
 	size_t len_out;
 	int col_out;
@@ -1518,8 +1518,7 @@ static void Con_DrawInput (void)
 	if (!key_consoleactive)
 		return;		// don't draw anything
 
-	strlcpy(editlinecopy, key_line, sizeof(editlinecopy));
-	text = editlinecopy;
+	strlcpy(text, key_line, sizeof(text));
 
 	// Advanced Console Editing by Radix radix@planetquake.com
 	// Added/Modified by EvilTypeGuy eviltypeguy@qeradiant.com
@@ -1542,7 +1541,7 @@ static void Con_DrawInput (void)
 					ofs = 2;
 				else if(text[caret_pos+1] == STRING_COLOR_RGB_TAG_CHAR && isxdigit(text[caret_pos+2]) && isxdigit(text[caret_pos+3]) && isxdigit(text[caret_pos+4]))
 					ofs = 5;
-				if(ofs && (size_t)(y + ofs + 1) < sizeof(editlinecopy) - 1)
+				if(ofs && (size_t)(y + ofs + 1) < sizeof(text) - 1)
 				{
 					int carets = 1;
 					while(caret_pos - carets >= 1 && text[caret_pos - carets] == STRING_COLOR_TAG)
