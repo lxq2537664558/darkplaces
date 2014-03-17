@@ -1568,7 +1568,7 @@ static void Con_DrawInput (void)
 		for(i=1; i < 5 && key_linepos - i > 0; ++i)
 			if(text[key_linepos-i] == STRING_COLOR_TAG)
 			{
-				int caret_pos, carets, ofs;
+				int caret_pos, ofs = 0;
 				caret_pos = key_linepos - i;
 				if(i == 1 && text[caret_pos+1] == STRING_COLOR_TAG)
 					ofs = 1;
@@ -1576,9 +1576,9 @@ static void Con_DrawInput (void)
 					ofs = 2;
 				else if(text[caret_pos+1] == STRING_COLOR_RGB_TAG_CHAR && isxdigit(text[caret_pos+2]) && isxdigit(text[caret_pos+3]) && isxdigit(text[caret_pos+4]))
 					ofs = 5;
-				if(ofs && y + ofs + 1 < (int)sizeof(editlinecopy) - 1)
+				if(ofs && (size_t)(y + ofs + 1) < sizeof(editlinecopy) - 1)
 				{
-					carets = 1;
+					int carets = 1;
 					while(caret_pos - carets >= 1 && text[caret_pos - carets] == STRING_COLOR_TAG)
 						++carets;
 					if(carets & 1)
