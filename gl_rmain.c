@@ -895,7 +895,7 @@ extern qboolean r_shadow_shadowmapsampler;
 extern int r_shadow_shadowmappcf;
 qboolean R_CompileShader_CheckStaticParms(void)
 {
-	static int r_compileshader_staticparms_save[1];
+	static int r_compileshader_staticparms_save[(SHADERSTATICPARMS_COUNT + 0x1F) >> 5];
 	memcpy(r_compileshader_staticparms_save, r_compileshader_staticparms, sizeof(r_compileshader_staticparms));
 	memset(r_compileshader_staticparms, 0, sizeof(r_compileshader_staticparms));
 
@@ -1629,7 +1629,7 @@ static void R_HLSL_CacheShader(r_hlsl_permutation_t *p, const char *cachename, c
 					vsresult = qD3DXCompileShaderFromFileA(va(vabuf, sizeof(vabuf), "%s/%s_vs.fx", fs_gamedir, cachename), NULL, NULL, "main", vsversion, shaderflags, &vsbuffer, &vslog, &vsconstanttable);
 				}
 				else
-					vsresult = qD3DXCompileShader(vertstring, strlen(vertstring), NULL, NULL, "main", vsversion, shaderflags, &vsbuffer, &vslog, &vsconstanttable);
+					vsresult = qD3DXCompileShader(vertstring, (unsigned int)strlen(vertstring), NULL, NULL, "main", vsversion, shaderflags, &vsbuffer, &vslog, &vsconstanttable);
 				if (vsbuffer)
 				{
 					vsbinsize = ID3DXBuffer_GetBufferSize(vsbuffer);
@@ -1652,7 +1652,7 @@ static void R_HLSL_CacheShader(r_hlsl_permutation_t *p, const char *cachename, c
 					psresult = qD3DXCompileShaderFromFileA(va(vabuf, sizeof(vabuf), "%s/%s_ps.fx", fs_gamedir, cachename), NULL, NULL, "main", psversion, shaderflags, &psbuffer, &pslog, &psconstanttable);
 				}
 				else
-					psresult = qD3DXCompileShader(fragstring, strlen(fragstring), NULL, NULL, "main", psversion, shaderflags, &psbuffer, &pslog, &psconstanttable);
+					psresult = qD3DXCompileShader(fragstring, (unsigned int)strlen(fragstring), NULL, NULL, "main", psversion, shaderflags, &psbuffer, &pslog, &psconstanttable);
 				if (psbuffer)
 				{
 					psbinsize = ID3DXBuffer_GetBufferSize(psbuffer);
@@ -1780,23 +1780,23 @@ static void R_HLSL_CompilePermutation(r_hlsl_permutation_t *p, unsigned int mode
 
 	vertstring_length = 0;
 	for (i = 0;i < vertstrings_count;i++)
-		vertstring_length += strlen(vertstrings_list[i]);
+		vertstring_length += (int)strlen(vertstrings_list[i]);
 	vertstring = t = (char *)Mem_Alloc(tempmempool, vertstring_length + 1);
-	for (i = 0;i < vertstrings_count;t += strlen(vertstrings_list[i]), i++)
+	for (i = 0;i < vertstrings_count;t += (int)strlen(vertstrings_list[i]), i++)
 		memcpy(t, vertstrings_list[i], strlen(vertstrings_list[i]));
 
 	geomstring_length = 0;
 	for (i = 0;i < geomstrings_count;i++)
-		geomstring_length += strlen(geomstrings_list[i]);
+		geomstring_length += (int)strlen(geomstrings_list[i]);
 	geomstring = t = (char *)Mem_Alloc(tempmempool, geomstring_length + 1);
-	for (i = 0;i < geomstrings_count;t += strlen(geomstrings_list[i]), i++)
+	for (i = 0;i < geomstrings_count;t += (int)strlen(geomstrings_list[i]), i++)
 		memcpy(t, geomstrings_list[i], strlen(geomstrings_list[i]));
 
 	fragstring_length = 0;
 	for (i = 0;i < fragstrings_count;i++)
-		fragstring_length += strlen(fragstrings_list[i]);
+		fragstring_length += (int)strlen(fragstrings_list[i]);
 	fragstring = t = (char *)Mem_Alloc(tempmempool, fragstring_length + 1);
-	for (i = 0;i < fragstrings_count;t += strlen(fragstrings_list[i]), i++)
+	for (i = 0;i < fragstrings_count;t += (int)strlen(fragstrings_list[i]), i++)
 		memcpy(t, fragstrings_list[i], strlen(fragstrings_list[i]));
 
 	// try to load the cached shader, or generate one
@@ -1900,7 +1900,7 @@ void R_GLSL_Restart_f(void)
 		{
 			r_hlsl_permutation_t *p;
 			r_hlsl_permutation = NULL;
-			limit = Mem_ExpandableArray_IndexRange(&r_hlsl_permutationarray);
+			limit = (unsigned int)Mem_ExpandableArray_IndexRange(&r_hlsl_permutationarray);
 			for (i = 0;i < limit;i++)
 			{
 				if ((p = (r_hlsl_permutation_t*)Mem_ExpandableArray_RecordAtIndex(&r_hlsl_permutationarray, i)))
@@ -1927,7 +1927,7 @@ void R_GLSL_Restart_f(void)
 		{
 			r_glsl_permutation_t *p;
 			r_glsl_permutation = NULL;
-			limit = Mem_ExpandableArray_IndexRange(&r_glsl_permutationarray);
+			limit = (unsigned int)Mem_ExpandableArray_IndexRange(&r_glsl_permutationarray);
 			for (i = 0;i < limit;i++)
 			{
 				if ((p = (r_glsl_permutation_t*)Mem_ExpandableArray_RecordAtIndex(&r_glsl_permutationarray, i)))
@@ -3400,6 +3400,10 @@ skinframe_t *R_SkinFrame_LoadExternal(const char *name, int textureflags, qboole
 	skinframe->fog = NULL;
 	skinframe->reflect = NULL;
 	skinframe->hasalpha = false;
+	skinframe->q2flags = image_q2flags;
+	skinframe->q2value = image_q2value;
+	skinframe->q2contents = image_q2contents;
+	// we could store the q2animname here too
 
 	if (ddsbase)
 	{
@@ -4832,7 +4836,7 @@ r_meshbuffer_t *R_BufferData_Store(size_t datasize, const void *data, r_bufferda
 		Sys_Error("R_BufferData_Store: failed to create a new buffer of sufficient size\n");
 
 	mem = r_bufferdata_buffer[r_bufferdata_cycle][type];
-	offset = mem->current;
+	offset = (int)mem->current;
 	mem->current += padsize;
 
 	// upload the data to the buffer at the chosen offset
@@ -6412,7 +6416,7 @@ static void R_Bloom_StartFrame(void)
 		Cvar_SetValueQuick(&r_damageblur, 0);
 	}
 
-	if (!(r_glsl_postprocess.integer || (!R_Stereo_ColorMasking() && r_glsl_saturation.value != 1) || (v_glslgamma.integer && !vid_gammatables_trivial))
+	if (!((r_glsl_postprocess.integer || r_fxaa.integer) || (!R_Stereo_ColorMasking() && r_glsl_saturation.value != 1) || (v_glslgamma.integer && !vid_gammatables_trivial))
 	 && !r_bloom.integer
 	 && (R_Stereo_Active() || (r_motionblur.value <= 0 && r_damageblur.value <= 0))
 	 && !useviewfbo
@@ -8143,7 +8147,9 @@ texture_t *R_GetCurrentTexture(texture_t *t)
 		{
 			// use an alternate animation if the entity's frame is not 0,
 			// and only if the texture has an alternate animation
-			if (rsurface.ent_alttextures && t->anim_total[1])
+			if (t->animated == 2) // q2bsp
+				t = t->anim_frames[0][ent->framegroupblend[0].frame % t->anim_total[0]];
+			else if (rsurface.ent_alttextures && t->anim_total[1])
 				t = t->anim_frames[1][(t->anim_total[1] >= 2) ? ((int)(rsurface.shadertime * 5.0f) % t->anim_total[1]) : 0];
 			else
 				t = t->anim_frames[0][(t->anim_total[0] >= 2) ? ((int)(rsurface.shadertime * 5.0f) % t->anim_total[0]) : 0];
@@ -8174,7 +8180,7 @@ texture_t *R_GetCurrentTexture(texture_t *t)
 		t->backgroundcurrentskinframe = t->backgroundskinframes[LoopingFrameNumberFromDouble(rsurface.shadertime * t->backgroundskinframerate, t->backgroundnumskinframes)];
 
 	t->currentmaterialflags = t->basematerialflags;
-	t->currentalpha = rsurface.colormod[3];
+	t->currentalpha = rsurface.colormod[3] * t->basealpha;
 	if (t->basematerialflags & MATERIALFLAG_WATERALPHA && (model->brush.supportwateralpha || r_novis.integer || r_trippy.integer))
 		t->currentalpha *= r_wateralpha.value;
 	if(t->basematerialflags & MATERIALFLAG_WATERSHADER && r_fb.water.enabled && !r_refdef.view.isoverlay)
@@ -12721,6 +12727,7 @@ void R_DrawCustomSurface(skinframe_t *skinframe, const matrix4x4_t *texmatrix, i
 
 	texture.update_lastrenderframe = -1; // regenerate this texture
 	texture.basematerialflags = materialflags | MATERIALFLAG_CUSTOMSURFACE | MATERIALFLAG_WALL;
+	texture.basealpha = 1.0f;
 	texture.currentskinframe = skinframe;
 	texture.currenttexmatrix = *texmatrix; // requires MATERIALFLAG_CUSTOMSURFACE
 	texture.offsetmapping = OFFSETMAPPING_OFF;

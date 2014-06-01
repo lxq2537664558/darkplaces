@@ -899,10 +899,10 @@ vector gettaginfo_up;
 //idea: tZork
 //darkplaces implementation: tZork, divVerent
 //constant definitions:
-float GETTIME_FRAMESTART = 0; // time of start of frame
-float GETTIME_REALTIME = 1; // current time (may be OS specific)
+float GETTIME_FRAMESTART = 0; // time of start of frame relative to an arbitrary point in time
+float GETTIME_REALTIME = 1; // current absolute time (OS specific)
 float GETTIME_HIRES = 2; // like REALTIME, but may reset between QC invocations and thus can be higher precision
-float GETTIME_UPTIME = 3; // time since start of the engine
+float GETTIME_UPTIME = 3; // time of start of frame since start of the engine
 //builtin definitions:
 float(float tmr) gettime = #519;
 //description:
@@ -1026,12 +1026,12 @@ string(string format, ...) sprintf = #627;
 //  flags: #0- +
 //  optional: <width>, *, or *<argpos>$ for the field width (width is read before value and precision)
 //  optional: .<precision>, .*, or .*<argpos>$ for the precision (precision is read before value)
-//  length modifiers: h for forcing a float, l for forcing an int/entity (by default, %d etc. cast a float to int)
+//  length modifiers: h for forcing a float, l for forcing an entity (by default, %d etc. cast a float to int), ll for forcing an int
 //  conversions:
-//    d takes a float if no length is specified or h is, and an int/entity if l is specified as length, and cast it to an int
-//    i takes an int/entity if no length is specified or i is, and a float if h is specified as length, and cast it to an int
-//    ouxXc take a float if no length is specified or h is, and an int/entity if l is specified as length, and cast it to an unsigned int
-//    eEfFgG take a float if no length is specified or h is, and an int/entity if l is specified as length, and cast it to a double
+//    d takes a float if no length is specified or h is, and an entity if l is specified as length, and an int if ll is specified as length, and cast it to an int
+//    i takes an entity if no length is specified or l is, and a float if h is specified as length, and an int if ll is specified as length, and cast it to an int
+//    ouxXc take a float if no length is specified or h is, and an entity if l is specified as length, and an int if ll is specified as length, and cast it to an unsigned int
+//    eEfFgG take a float if no length is specified or h is, and an entity if l is specified as length, and an int if ll is specified as length, and cast it to a double
 //    s takes a string
 //    vV takes a vector, and processes the three components as if it were a gG for all three components, separated by space
 //    For conversions s and c, the flag # makes precision and width interpreted
@@ -1183,7 +1183,9 @@ void(vector dir) vectorvectors = #432;
 //builtin definitions:
 string(string filename) whichpack = #503;
 //description:
-//returns the name of the pak/pk3/whatever containing the given file, in the same path space as FRIK_FILE functions use (that is, possibly with a path name prefix)
+//for files in a pak/pk3/whatever, returns the pack's file name in FRIK_FILE name space.
+//for physical files, returns "".
+//in case of error, returns string_null.
 
 //DP_QC_URI_ESCAPE
 //idea: divVerent

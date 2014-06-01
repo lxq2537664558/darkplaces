@@ -1149,8 +1149,8 @@ void Sys_SendKeyEvents( void )
 					{
 						SDL_FreeSurface(vid_softsurface);
 						vid_softsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, vid.width, vid.height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
-						vid.softpixels = (unsigned int *)vid_softsurface->pixels;
 						SDL_SetAlpha(vid_softsurface, 0, 255);
+						vid.softpixels = (unsigned int *)vid_softsurface->pixels;
 						if (vid.softdepthpixels)
 							free(vid.softdepthpixels);
 						vid.softdepthpixels = (unsigned int*)calloc(1, vid.width * vid.height * 4);
@@ -1299,6 +1299,7 @@ void Sys_SendKeyEvents( void )
 							{
 								SDL_FreeSurface(vid_softsurface);
 								vid_softsurface = SDL_CreateRGBSurface(SDL_SWSURFACE, vid.width, vid.height, 32, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+								SDL_SetSurfaceBlendMode(vid_softsurface, SDL_BLENDMODE_NONE);
 								vid.softpixels = (unsigned int *)vid_softsurface->pixels;
 								if (vid.softdepthpixels)
 									free(vid.softdepthpixels);
@@ -2711,6 +2712,8 @@ static qboolean VID_InitModeSoft(viddef_mode_t *mode)
 	}
 #if SDL_MAJOR_VERSION == 1
 	SDL_SetAlpha(vid_softsurface, 0, 255);
+#else
+	SDL_SetSurfaceBlendMode(vid_softsurface, SDL_BLENDMODE_NONE);
 #endif
 
 	vid.softpixels = (unsigned int *)vid_softsurface->pixels;
@@ -2918,8 +2921,13 @@ size_t VID_ListModes(vid_mode_t *modes, size_t maxcount)
 #if SDL_MAJOR_VERSION == 1
 	SDL_Rect **vidmodes;
 	int bpp = SDL_GetVideoInfo()->vfmt->BitsPerPixel;
+#ifdef WIN64
+	SDL_Rect **ENDRECT = (SDL_Rect**)-1LL;
+#else
+	SDL_Rect **ENDRECT = (SDL_Rect**)-1;
+#endif
 
-	for(vidmodes = SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_HWSURFACE); vidmodes && vidmodes != (SDL_Rect**)(-1) && *vidmodes; ++vidmodes)
+	for(vidmodes = SDL_ListModes(NULL, SDL_FULLSCREEN|SDL_HWSURFACE); vidmodes && vidmodes != ENDRECT && *vidmodes; ++vidmodes)
 	{
 		if(k >= maxcount)
 			break;
