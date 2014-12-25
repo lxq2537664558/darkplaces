@@ -678,7 +678,8 @@ shaderpermutationinfo_t shaderpermutationinfo[SHADERPERMUTATION_COUNT] =
 	{"#define USETRIPPY\n", " trippy"},
 	{"#define USEDEPTHRGB\n", " depthrgb"},
 	{"#define USEALPHAGENVERTEX\n", " alphagenvertex"},
-	{"#define USESKELETAL\n", " skeletal"}
+	{"#define USESKELETAL\n", " skeletal"},
+	{"#define USEOCCLUDE\n", " occlude"}
 };
 
 // NOTE: MUST MATCH ORDER OF SHADERMODE_* ENUMS!
@@ -2202,6 +2203,8 @@ void R_SetupShader_Surface(const vec3_t lightcolorbase, qboolean modellighting, 
 		permutation |= SHADERPERMUTATION_TRIPPY;
 	if (rsurface.texture->currentmaterialflags & MATERIALFLAG_ALPHATEST)
 		permutation |= SHADERPERMUTATION_ALPHAKILL;
+	if (rsurface.texture->currentmaterialflags & MATERIALFLAG_OCCLUDE)
+		permutation |= SHADERPERMUTATION_OCCLUDE;
 	if (rsurface.texture->r_water_waterscroll[0] && rsurface.texture->r_water_waterscroll[1])
 		permutation |= SHADERPERMUTATION_NORMALMAPSCROLLBLEND; // todo: make generic
 	if (rsurfacepass == RSURFPASS_BACKGROUND)
@@ -3400,9 +3403,6 @@ skinframe_t *R_SkinFrame_LoadExternal(const char *name, int textureflags, qboole
 	skinframe->fog = NULL;
 	skinframe->reflect = NULL;
 	skinframe->hasalpha = false;
-	skinframe->q2flags = image_q2flags;
-	skinframe->q2value = image_q2value;
-	skinframe->q2contents = image_q2contents;
 	// we could store the q2animname here too
 
 	if (ddsbase)
@@ -10664,7 +10664,7 @@ static void R_DrawTextureSurfaceList_Sky(int texturenumsurfaces, const msurface_
 	// in Quake3 maps as it causes problems with q3map2 sky tricks,
 	// and skymasking also looks very bad when noclipping outside the
 	// level, so don't use it then either.
-	if (r_refdef.scene.worldmodel && r_refdef.scene.worldmodel->type == mod_brushq1 && r_q1bsp_skymasking.integer && !r_refdef.viewcache.world_novis && !r_trippy.integer)
+	if (r_refdef.scene.worldmodel && r_refdef.scene.worldmodel->brush.skymasking && r_q1bsp_skymasking.integer && !r_refdef.viewcache.world_novis && !r_trippy.integer)
 	{
 		R_Mesh_ResetTextureState();
 		if (skyrendermasked)

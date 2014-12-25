@@ -193,6 +193,8 @@ cvar_t sv_autodemo_perclient_nameformat = {CVAR_SAVE, "sv_autodemo_perclient_nam
 cvar_t sv_autodemo_perclient_discardable = {CVAR_SAVE, "sv_autodemo_perclient_discardable", "0", "Allow game code to decide whether a demo should be kept or discarded."};
 
 cvar_t halflifebsp = {0, "halflifebsp", "0", "indicates the current map is hlbsp format (useful to know because of different bounding box sizes)"};
+cvar_t sv_mapformat_is_quake2 = {0, "sv_mapformat_is_quake2", "0", "indicates the current map is q2bsp format (useful to know because of different entity behaviors, .frame on submodels and other things)"};
+cvar_t sv_mapformat_is_quake3 = {0, "sv_mapformat_is_quake3", "0", "indicates the current map is q2bsp format (useful to know because of different entity behaviors)"};
 
 server_t sv;
 server_static_t svs;
@@ -603,6 +605,8 @@ void SV_Init (void)
 	Cvar_RegisterVariable (&sv_autodemo_perclient_discardable);
 
 	Cvar_RegisterVariable (&halflifebsp);
+	Cvar_RegisterVariable (&sv_mapformat_is_quake2);
+	Cvar_RegisterVariable (&sv_mapformat_is_quake3);
 
 	sv_mempool = Mem_AllocPool("server", 0, NULL);
 }
@@ -2473,7 +2477,9 @@ static void SV_UpdateToReliableMessages (void)
 		if (name == NULL)
 			name = "";
 		// always point the string back at host_client->name to keep it safe
-		strlcpy (host_client->name, name, sizeof (host_client->name));
+		//strlcpy (host_client->name, name, sizeof (host_client->name));
+		if (name != host_client->name) // prevent buffer overlap SIGABRT on Mac OSX
+			strlcpy (host_client->name, name, sizeof (host_client->name));
 		PRVM_serveredictstring(host_client->edict, netname) = PRVM_SetEngineString(prog, host_client->name);
 		if (strcmp(host_client->old_name, host_client->name))
 		{
@@ -2503,7 +2509,9 @@ static void SV_UpdateToReliableMessages (void)
 		if (model == NULL)
 			model = "";
 		// always point the string back at host_client->name to keep it safe
-		strlcpy (host_client->playermodel, model, sizeof (host_client->playermodel));
+		//strlcpy (host_client->playermodel, model, sizeof (host_client->playermodel));
+		if (model != host_client->playermodel) // prevent buffer overlap SIGABRT on Mac OSX
+			strlcpy (host_client->playermodel, model, sizeof (host_client->playermodel));
 		PRVM_serveredictstring(host_client->edict, playermodel) = PRVM_SetEngineString(prog, host_client->playermodel);
 
 		// NEXUIZ_PLAYERSKIN
@@ -2511,7 +2519,9 @@ static void SV_UpdateToReliableMessages (void)
 		if (skin == NULL)
 			skin = "";
 		// always point the string back at host_client->name to keep it safe
-		strlcpy (host_client->playerskin, skin, sizeof (host_client->playerskin));
+		//strlcpy (host_client->playerskin, skin, sizeof (host_client->playerskin));
+		if (skin != host_client->playerskin) // prevent buffer overlap SIGABRT on Mac OSX
+			strlcpy (host_client->playerskin, skin, sizeof (host_client->playerskin));
 		PRVM_serveredictstring(host_client->edict, playerskin) = PRVM_SetEngineString(prog, host_client->playerskin);
 
 		// TODO: add an extension name for this [1/17/2008 Black]
@@ -3343,6 +3353,8 @@ void SV_SpawnServer (const char *server)
 	cls.signon = 0;
 
 	Cvar_SetValue("halflifebsp", worldmodel->brush.ishlbsp);
+	Cvar_SetValue("sv_mapformat_is_quake2", worldmodel->brush.isq2bsp);
+	Cvar_SetValue("sv_mapformat_is_quake3", worldmodel->brush.isq3bsp);
 
 	if(*sv_random_seed.string)
 	{

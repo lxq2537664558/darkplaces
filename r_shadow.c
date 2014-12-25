@@ -269,6 +269,9 @@ static rtexture_t *r_shadow_fb_colortexture;
 // lights are reloaded when this changes
 char r_shadow_mapname[MAX_QPATH];
 
+// buffer for doing corona fading
+unsigned int r_shadow_occlusion_buf = 0;
+
 // used only for light filters (cubemaps)
 rtexturepool_t *r_shadow_filters_texturepool;
 
@@ -3527,7 +3530,7 @@ void R_RTLight_Compile(rtlight_t *rtlight)
 				lighttris++;
 
 	shadowtris = 0;
-	if (rtlight->static_numlighttrispvsbytes)
+	if (rtlight->static_numshadowtrispvsbytes)
 		for (i = 0;i < rtlight->static_numshadowtrispvsbytes*8;i++)
 			if (CHECKPVSBIT(rtlight->static_shadowtrispvs, i))
 				shadowtris++;
@@ -5147,7 +5150,9 @@ static float spritetexcoord2f[4*2] = {0, 1, 0, 0, 1, 0, 1, 1};
 static void R_DrawCorona(rtlight_t *rtlight, float cscale, float scale)
 {
 	vec3_t color;
+	unsigned int occlude = 0;
 	GLint allpixels = 0, visiblepixels = 0;
+
 	// now we have to check the query result
 	if (rtlight->corona_queryindex_visiblepixels)
 	{
@@ -5160,29 +5165,48 @@ static void R_DrawCorona(rtlight_t *rtlight, float cscale, float scale)
 		case RENDERPATH_GLES2:
 #if defined(GL_SAMPLES_PASSED_ARB) && !defined(USE_GLES2)
 			CHECKGLERROR
-			qglGetQueryObjectivARB(rtlight->corona_queryindex_visiblepixels, GL_QUERY_RESULT_ARB, &visiblepixels);
-			qglGetQueryObjectivARB(rtlight->corona_queryindex_allpixels, GL_QUERY_RESULT_ARB, &allpixels);
+			// See if we can use the GPU-side method to prevent implicit sync
+			if (vid.support.arb_query_buffer_object) {
+#define BUFFER_OFFSET(i)    ((void*)NULL + (i))
+				if (!r_shadow_occlusion_buf) {
+					qglGenBuffersARB(1, &r_shadow_occlusion_buf);
+					qglBindBufferARB(GL_QUERY_BUFFER_ARB, r_shadow_occlusion_buf);
+					qglBufferDataARB(GL_QUERY_BUFFER_ARB, 8, NULL, GL_DYNAMIC_COPY);
+				} else {
+					qglBindBufferARB(GL_QUERY_BUFFER_ARB, r_shadow_occlusion_buf);
+				}
+				qglGetQueryObjectivARB(rtlight->corona_queryindex_visiblepixels, GL_QUERY_RESULT_ARB, BUFFER_OFFSET(0));
+				qglGetQueryObjectivARB(rtlight->corona_queryindex_allpixels, GL_QUERY_RESULT_ARB, BUFFER_OFFSET(4));
+				qglBindBufferBase(GL_UNIFORM_BUFFER, 0, r_shadow_occlusion_buf);
+				occlude = MATERIALFLAG_OCCLUDE;
+			} else {
+				qglGetQueryObjectivARB(rtlight->corona_queryindex_visiblepixels, GL_QUERY_RESULT_ARB, &visiblepixels);
+				qglGetQueryObjectivARB(rtlight->corona_queryindex_allpixels, GL_QUERY_RESULT_ARB, &allpixels); 
+				if (visiblepixels < 1 || allpixels < 1)
+					return;
+				rtlight->corona_visibility *= bound(0, (float)visiblepixels / (float)allpixels, 1);
+			}
+			cscale *= rtlight->corona_visibility;
 			CHECKGLERROR
-#endif
 			break;
+#else
+			return;
+#endif
 		case RENDERPATH_D3D9:
 			Con_DPrintf("FIXME D3D9 %s:%i %s\n", __FILE__, __LINE__, __FUNCTION__);
-			break;
+			return;
 		case RENDERPATH_D3D10:
 			Con_DPrintf("FIXME D3D10 %s:%i %s\n", __FILE__, __LINE__, __FUNCTION__);
-			break;
+			return;
 		case RENDERPATH_D3D11:
 			Con_DPrintf("FIXME D3D11 %s:%i %s\n", __FILE__, __LINE__, __FUNCTION__);
-			break;
+			return;
 		case RENDERPATH_SOFT:
 			//Con_DPrintf("FIXME SOFT %s:%i %s\n", __FILE__, __LINE__, __FUNCTION__);
-			break;
-		}
-		//Con_Printf("%i of %i pixels\n", (int)visiblepixels, (int)allpixels);
-		if (visiblepixels < 1 || allpixels < 1)
 			return;
-		rtlight->corona_visibility *= bound(0, (float)visiblepixels / (float)allpixels, 1);
-		cscale *= rtlight->corona_visibility;
+		default:
+			return;
+		}
 	}
 	else
 	{
@@ -5202,7 +5226,7 @@ static void R_DrawCorona(rtlight_t *rtlight, float cscale, float scale)
 		}
 		R_CalcSprite_Vertex3f(vertex3f, rtlight->shadoworigin, r_refdef.view.right, r_refdef.view.up, scale, -scale, -scale, scale);
 		RSurf_ActiveCustomEntity(&identitymatrix, &identitymatrix, RENDER_NODEPTHTEST, 0, color[0], color[1], color[2], 1, 4, vertex3f, spritetexcoord2f, NULL, NULL, NULL, NULL, 2, polygonelement3i, polygonelement3s, false, false);
-		R_DrawCustomSurface(r_shadow_lightcorona, &identitymatrix, MATERIALFLAG_ADD | MATERIALFLAG_BLENDED | MATERIALFLAG_FULLBRIGHT | MATERIALFLAG_NOCULLFACE | MATERIALFLAG_NODEPTHTEST, 0, 4, 0, 2, false, false);
+		R_DrawCustomSurface(r_shadow_lightcorona, &identitymatrix, MATERIALFLAG_ADD | MATERIALFLAG_BLENDED | MATERIALFLAG_FULLBRIGHT | MATERIALFLAG_NOCULLFACE | MATERIALFLAG_NODEPTHTEST | occlude, 0, 4, 0, 2, false, false);
 		if(negated)
 			GL_BlendEquationSubtract(false);
 	}
