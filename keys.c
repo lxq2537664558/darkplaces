@@ -1186,16 +1186,16 @@ Key_Console (int key, int unicode)
 		// check insert mode, or always insert if at end of line
 		if (key_insert || len == 0)
 		{
+			if (key_linepos + len + blen >= MAX_INPUTLINE)
+				return;
 			// can't use strcpy to move string to right
 			len++;
-			//memmove(&key_line[key_linepos + u8_bytelen(key_line + key_linepos, 1)], &key_line[key_linepos], len);
 			memmove(&key_line[key_linepos + blen], &key_line[key_linepos], len);
 		}
+		else if (key_linepos + len + blen - u8_bytelen(key_line + key_linepos, 1) >= MAX_INPUTLINE)
+			return;
 		memcpy(key_line + key_linepos, buf, blen);
 		key_linepos += blen;
-		//key_linepos += u8_fromchar(unicode, key_line + key_linepos, sizeof(key_line) - key_linepos - 1);
-		//key_line[key_linepos] = ascii;
-		//key_linepos++;
 	}
 }
 
