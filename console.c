@@ -1510,7 +1510,7 @@ static void Con_DrawInput (void)
 {
 	int		y;
 	int		i;
-	char text[MAX_INPUTLINE+1];
+	char text[sizeof(key_line)+5+1]; // space for ^^xRGB too
 	float x, xo;
 	size_t len_out;
 	int col_out;
@@ -1522,8 +1522,6 @@ static void Con_DrawInput (void)
 
 	// Advanced Console Editing by Radix radix@planetquake.com
 	// Added/Modified by EvilTypeGuy eviltypeguy@qeradiant.com
-	// use strlen of edit_line instead of key_linepos to allow editing
-	// of early characters w/o erasing
 
 	y = (int)strlen(text);
 
@@ -1541,7 +1539,7 @@ static void Con_DrawInput (void)
 					ofs = 2;
 				else if(text[caret_pos+1] == STRING_COLOR_RGB_TAG_CHAR && isxdigit(text[caret_pos+2]) && isxdigit(text[caret_pos+3]) && isxdigit(text[caret_pos+4]))
 					ofs = 5;
-				if(ofs && (size_t)(y + ofs + 1) < sizeof(text) - 1)
+				if(ofs && (size_t)(y + ofs + 1) < sizeof(text))
 				{
 					int carets = 1;
 					while(caret_pos - carets >= 1 && text[caret_pos - carets] == STRING_COLOR_TAG)
