@@ -7,6 +7,8 @@ set(DP_MENU 1)
 set(DP_CD 1)
 set(DP_VIDEO_CAPTURE 1)
 
+set(DP_IOS 0)
+
 set(SOURCE_COMMON
         builddate.c
         bih.c bih.h
@@ -123,6 +125,13 @@ if (WIN32)
     list(APPEND SOURCE_COMMON conproc.c conproc.h)
 endif ()
 
+if (DP_IOS)
+    list(APPEND DP_DEFS -D__IPHONEOS__)
+    set(CMAKE_OSX_SYSROOT iphoneos)
+    set(CMAKE_OSX_ARCHITECTURES "$(ARCHS_STANDARD)")
+    set(MACOSX_BUNDLE_GUI_IDENTIFIER "org.xonotic\${PRODUCT_NAME:identifier}")
+endif ()
+
 list(APPEND SOURCE_CLIENT vid_sdl.c)
 list(APPEND SOURCE_SERVER vid_null.c)
 
@@ -148,9 +157,9 @@ list(APPEND SOURCE_COMMON thread.h)
 list(APPEND SOURCE_CLIENT thread_sdl.c)
 list(APPEND SOURCE_SERVER thread_null.c)
 
-add_executable(darkplaces-dedicated ${SOURCE_SERVER} ${SOURCE_COMMON})
+add_executable(darkplaces-dedicated MACOSX_BUNDLE ${SOURCE_SERVER} ${SOURCE_COMMON})
 if (DP_CLIENT)
-    add_executable(darkplaces ${SOURCE_CLIENT} ${SOURCE_COMMON})
+    add_executable(darkplaces MACOSX_BUNDLE ${SOURCE_CLIENT} ${SOURCE_COMMON})
 endif ()
 
 target_compile_definitions(darkplaces-dedicated PRIVATE ${DP_DEFS} ${DP_DEFS_SERVER})
@@ -188,8 +197,10 @@ if (DP_CLIENT)
     target_include_directories(darkplaces PRIVATE ${SDL2_INCLUDE_DIR})
     target_link_libraries(darkplaces PRIVATE ${SDL2_LIBRARY})
 
-    find_package(JPEG REQUIRED)
-    target_include_directories(darkplaces PRIVATE ${JPEG_INCLUDE_DIR})
-    target_link_libraries(darkplaces PRIVATE ${JPEG_LIBRARIES})
-    target_compile_definitions(darkplaces PRIVATE -DLINK_TO_LIBJPEG)
+    if (NOT DP_IOS)
+        find_package(JPEG REQUIRED)
+        target_include_directories(darkplaces PRIVATE ${JPEG_INCLUDE_DIR})
+        target_link_libraries(darkplaces PRIVATE ${JPEG_LIBRARIES})
+        target_compile_definitions(darkplaces PRIVATE -DLINK_TO_LIBJPEG)
+    endif ()
 endif ()
