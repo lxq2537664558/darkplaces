@@ -192,7 +192,18 @@ if (APPLE)
     endif ()
 endif ()
 
+find_package(ZLIB REQUIRED)
+target_include_directories(darkplaces-dedicated PRIVATE ${ZLIB_INCLUDE_DIR})
+target_link_libraries(darkplaces-dedicated PRIVATE ${ZLIB_LIBRARIES})
+target_compile_definitions(darkplaces-dedicated PRIVATE -DLINK_TO_ZLIB)
+
+target_link_libraries(darkplaces PRIVATE d0_blind_id)
+
 if (DP_CLIENT)
+    target_include_directories(darkplaces PRIVATE ${ZLIB_INCLUDE_DIR})
+    target_link_libraries(darkplaces PRIVATE ${ZLIB_LIBRARIES})
+    target_compile_definitions(darkplaces PRIVATE -DLINK_TO_ZLIB)
+
     find_package(SDL2 REQUIRED)
     target_include_directories(darkplaces PRIVATE ${SDL2_INCLUDE_DIR})
     target_link_libraries(darkplaces PRIVATE ${SDL2_LIBRARY})
