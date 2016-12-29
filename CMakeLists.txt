@@ -2,12 +2,14 @@ cmake_minimum_required(VERSION 2.8.11)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 project(darkplaces C)
 
+set(DP_IOS 0)
+
 set(DP_CLIENT 1)
+set(DP_SERVER 0)
+
 set(DP_MENU 1)
 set(DP_CD 1)
 set(DP_VIDEO_CAPTURE 1)
-
-set(DP_IOS 0)
 
 set(SOURCE_COMMON
         builddate.c
@@ -91,12 +93,12 @@ set(SOURCE_COMMON
         world.c world.h
         zone.c zone.h
         )
+set(SOURCE_CLIENT)
+set(SOURCE_SERVER)
 
 set(DP_DEFS)
 set(DP_DEFS_CLIENT)
 set(DP_DEFS_SERVER)
-set(SOURCE_CLIENT)
-set(SOURCE_SERVER)
 
 if (DP_MENU)
     list(APPEND DP_DEFS -DCONFIG_MENU)
@@ -157,61 +159,42 @@ list(APPEND SOURCE_COMMON thread.h)
 list(APPEND SOURCE_CLIENT thread_sdl.c)
 list(APPEND SOURCE_SERVER thread_null.c)
 
-add_executable(darkplaces-dedicated MACOSX_BUNDLE ${SOURCE_SERVER} ${SOURCE_COMMON})
+if (DP_SERVER)
+    add_executable(darkplaces-dedicated MACOSX_BUNDLE ${SOURCE_SERVER} ${SOURCE_COMMON})
+endif ()
 if (DP_CLIENT)
     add_executable(darkplaces MACOSX_BUNDLE ${SOURCE_CLIENT} ${SOURCE_COMMON})
 endif ()
 
-target_compile_definitions(darkplaces-dedicated PRIVATE ${DP_DEFS} ${DP_DEFS_SERVER})
+if (DP_SERVER)
+    target_compile_definitions(darkplaces-dedicated PRIVATE ${DP_DEFS} ${DP_DEFS_SERVER})
+endif ()
 if (DP_CLIENT)
     target_compile_definitions(darkplaces PRIVATE ${DP_DEFS} ${DP_DEFS_CLIENT})
 endif ()
-target_link_libraries(darkplaces-dedicated PRIVATE ${CMAKE_DL_LIBS})
-if (DP_CLIENT)
-    target_link_libraries(darkplaces PRIVATE ${CMAKE_DL_LIBS})
-endif ()
 
+set(LIBS_COMMON
+        ${CMAKE_DL_LIBS}
+        d0_blind_id
+        )
 if (UNIX)
-    target_link_libraries(darkplaces-dedicated PRIVATE m)
-    if (DP_CLIENT)
-        target_link_libraries(darkplaces PRIVATE m)
-    endif ()
+    list(APPEND LIBS_COMMON m)
 endif ()
-
 if (WIN32)
-    target_link_libraries(darkplaces-dedicated PRIVATE ws2_32 winmm)
-    if (DP_CLIENT)
-        target_link_libraries(darkplaces PRIVATE ws2_32 winmm)
-    endif ()
+    list(APPEND LIBS_COMMON ws2_32 winmm)
 endif ()
-
 if (APPLE)
-    target_link_libraries(darkplaces-dedicated PRIVATE "-framework IOKit")
-    if (DP_CLIENT)
-        target_link_libraries(darkplaces PRIVATE "-framework IOKit")
-    endif ()
+    list(APPEND LIBS_COMMON "-framework IOKit")
 endif ()
-
-find_package(ZLIB REQUIRED)
-target_include_directories(darkplaces-dedicated PRIVATE ${ZLIB_INCLUDE_DIR})
-target_link_libraries(darkplaces-dedicated PRIVATE ${ZLIB_LIBRARIES})
-target_compile_definitions(darkplaces-dedicated PRIVATE -DLINK_TO_ZLIB)
-
-target_link_libraries(darkplaces PRIVATE d0_blind_id)
+if (DP_SERVER)
+    target_link_libraries(darkplaces-dedicated PRIVATE ${LIBS_COMMON})
+endif ()
+if (DP_CLIENT)
+    target_link_libraries(darkplaces PRIVATE ${LIBS_COMMON})
+endif ()
 
 if (DP_CLIENT)
-    target_include_directories(darkplaces PRIVATE ${ZLIB_INCLUDE_DIR})
-    target_link_libraries(darkplaces PRIVATE ${ZLIB_LIBRARIES})
-    target_compile_definitions(darkplaces PRIVATE -DLINK_TO_ZLIB)
-
     find_package(SDL2 REQUIRED)
     target_include_directories(darkplaces PRIVATE ${SDL2_INCLUDE_DIR})
     target_link_libraries(darkplaces PRIVATE ${SDL2_LIBRARY})
-
-    if (NOT DP_IOS)
-        find_package(JPEG REQUIRED)
-        target_include_directories(darkplaces PRIVATE ${JPEG_INCLUDE_DIR})
-        target_link_libraries(darkplaces PRIVATE ${JPEG_LIBRARIES})
-        target_compile_definitions(darkplaces PRIVATE -DLINK_TO_LIBJPEG)
-    endif ()
 endif ()
